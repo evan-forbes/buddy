@@ -52,6 +52,7 @@ type tmplMethod struct {
 type tmplEvent struct {
 	Original   abi.Event // Original event as parsed by the abi package
 	Normalized abi.Event // Normalized version of the parsed fields
+	Topic      string
 }
 
 // tmplField is a wrapper around a struct field with binding language
@@ -90,14 +91,13 @@ func New{{.Type}}(address common.Address, backend bind.ContractBackend) (*{{.Typ
 	return &{{.Type}}(*contract), nil
 }
 
-///////////////////////////
+//////////////////////////////////////////////////////
 //		Data Calls
-/////////////////////////
+////////////////////////////////////////////////////
 
 {{range .Calls}}
 // {{.Normalized.Name}} is a free data retrieval call binding the contract method 0x{{printf "%x" .Original.ID}}.
-//
-// Solidity: {{formatmethod .Original $structs}}
+// - Solidity: {{formatmethod .Original $structs}}
 func (_{{$contract.Type}} *{{$contract.Type}}) {{.Normalized.Name}}(opts *bind.CallOpts {{range .Normalized.Inputs}}, {{.Name}} {{bindtype .Type $structs}} {{end}}) ({{if .Structured}}struct{ {{range .Normalized.Outputs}}{{.Name}} {{bindtype .Type $structs}};{{end}} },{{else}}{{range .Normalized.Outputs}}{{bindtype .Type $structs}},{{end}}{{end}} error) {
 	{{if .Structured}}ret := new(struct{
 		{{range .Normalized.Outputs}}{{.Name}} {{bindtype .Type $structs}}
@@ -115,31 +115,59 @@ func (_{{$contract.Type}} *{{$contract.Type}}) {{.Normalized.Name}}(opts *bind.C
 }
 {{end}}
 
-///////////////////////////
+//////////////////////////////////////////////////////
 //		Transactions
-/////////////////////////
+////////////////////////////////////////////////////
 
 {{range .Transacts}}
 // {{.Normalized.Name}} is a paid mutator transaction binding the contract method 0x{{printf "%x" .Original.ID}}.
-//
-// Solidity: {{formatmethod .Original $structs}}
+// - Solidity: {{formatmethod .Original $structs}}
 func (_{{$contract.Type}} *{{$contract.Type}}) {{.Normalized.Name}}(opts *bind.TransactOpts {{range .Normalized.Inputs}}, {{.Name}} {{bindtype .Type $structs}} {{end}}) (*types.Transaction, error) {
 	return _{{$contract.Type}}.Transact(opts, "{{.Original.Name}}" {{range .Normalized.Inputs}}, {{.Name}}{{end}})
 }
 {{end}}
 
-{{end}}
-
-///////////////////////////
+//////////////////////////////////////////////////////
 //		Events
-/////////////////////////
+////////////////////////////////////////////////////
 
+{{range .Events}}
+//////// {{.Normalized.Name}} ////////
+// {{$contract.Type}}{{.Normalized.Name}}Log represents a {{.Normalized.Name}} event raised by the {{$contract.Type}} contract.
+// Topic: {{.Topic}}
+type {{$contract.Type}}{{.Normalized.Name}}Log struct { {{range .Normalized.Inputs}}
+	{{capitalise .Name}} {{if .Indexed}}{{bindtopictype .Type $structs}}{{else}}{{bindtype .Type $structs}}{{end}}; {{end}}
+	Raw types.Log // Blockchain specific contextual infos
+}
 
-///////////////////////////
+// Unpack is a generalized log parse operation binding the contract event {{.Topic}}
+// follows the parse.Unpacker interface, see the below Parse Method a type checked return
+// Solidity: {{formatevent .Original $structs}}
+func (_{{$contract.Type}}Log *{{$contract.Type}}Log) Unpack(log types.Log) (parsed interface{}, err error) {
+	event := new({{$contract.Type}}{{.Normalized.Name}}Log)
+	if err := _{{$contract.Type}}.contract.UnpackLog(event, "{{.Original.Name}}", log); err != nil {
+		return nil, err
+	}
+	return event, nil
+}
+
+// Parse{{.Normalized.Name}}Log is a log parse operation binding the contract event {{.Topic}}
+// Solidity: {{formatevent .Original $structs}}
+func (_{{$contract.Type}}Log *{{$contract.Type}}Log) Parse{{.Normalized.Name}}Log(log types.Log) (*{{$contract.Type}}{{.Normalized.Name}}Log, error) {
+	event := new({{$contract.Type}}{{.Normalized.Name}}Log)
+	if err := _{{$contract.Type}}.contract.UnpackLog(event, "{{.Original.Name}}", log); err != nil {
+		return nil, err
+	}
+	return event, nil
+}
+
+{{end}}
+//////////////////////////////////////////////////////
 //		Bin and ABI
-/////////////////////////
+////////////////////////////////////////////////////
 var {{.Type}}Bin = "0x{{.InputBin}}"
 const {{.Type}}ABI = "{{.InputABI}}"
+{{end}}
 `
 
 // // for event in events make events + unpacker + parser
@@ -148,3 +176,4 @@ const {{.Type}}ABI = "{{.InputABI}}"
 // 	{{capitalise .Name}} {{if .Indexed}}{{bindtopictype .Type $structs}}{{else}}{{bindtype .Type $structs}}{{end}}; {{end}}
 // 	Raw types.Log // Blockchain specific contextual infos
 // }
+// func (_{{$contract.Type}}) *{{contract.Type}} {{}}

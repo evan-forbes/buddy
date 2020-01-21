@@ -19,7 +19,6 @@
 // Detailed usage document and tutorial available on the go-ethereum Wiki page:
 // https://github.com/ethereum/go-ethereum/wiki/Native-DApps:-Go-bindings-to-Ethereum-contracts
 
-// this package is forked and modified slightly from the
 package bind
 
 import (
@@ -35,6 +34,12 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/log"
 )
+
+// TODO:
+// - Remove all the code that is no longer needed
+// - Simplify by eliminating support for multiple contracts,
+//   replace this functionality by calling once per contract
+//   writing to multiple files.
 
 // Lang is a target programming language selector to generate bindings for.
 type Lang int
@@ -168,7 +173,7 @@ func Bind(types []string, abis []string, bytecodes []string, pkg string) (string
 				}
 			}
 			// Append the event to the accumulator list
-			events[original.Name] = &tmplEvent{Original: original, Normalized: normalized}
+			events[original.Name] = &tmplEvent{Original: original, Normalized: normalized, Topic: original.ID().Hex()}
 		}
 
 		// There is no easy way to pass arbitrary java objects to the Go side.
