@@ -17,3 +17,15 @@ func main() {
 	}
 	wand.Run(ctx, spells, os.Args[1:])
 }
+
+/*
+
+for the type of code generation that I want, I will need
+
+each of the event log structs and some unpacking method
+
+a wrapper around bind.BoundContract along with
+a wrapper methods for each public contract method
+
+
+*/
