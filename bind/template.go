@@ -75,8 +75,8 @@ const tmplSourceGo = `
 
 package {{.Package}}
 
-var {{.Type}}Bin = "0x{{.InputBin}}"
-const {{.Type}}ABI = "{{.InputABI}}"
+{{$structs := .Structs}}
+{{range $contract := .Contracts}}
 
 type {{.Type}} bind.BoundContract
 
@@ -90,8 +90,61 @@ func New{{.Type}}(address common.Address, backend bind.ContractBackend) (*{{.Typ
 	return &{{.Type}}(*contract), nil
 }
 
-// for method in thingy make method
+///////////////////////////
+//		Data Calls
+/////////////////////////
 
-// for event in events make events + unpacker + parser
+{{range .Calls}}
+// {{.Normalized.Name}} is a free data retrieval call binding the contract method 0x{{printf "%x" .Original.ID}}.
+//
+// Solidity: {{formatmethod .Original $structs}}
+func (_{{$contract.Type}} *{{$contract.Type}}) {{.Normalized.Name}}(opts *bind.CallOpts {{range .Normalized.Inputs}}, {{.Name}} {{bindtype .Type $structs}} {{end}}) ({{if .Structured}}struct{ {{range .Normalized.Outputs}}{{.Name}} {{bindtype .Type $structs}};{{end}} },{{else}}{{range .Normalized.Outputs}}{{bindtype .Type $structs}},{{end}}{{end}} error) {
+	{{if .Structured}}ret := new(struct{
+		{{range .Normalized.Outputs}}{{.Name}} {{bindtype .Type $structs}}
+		{{end}}
+	}){{else}}var (
+		{{range $i, $_ := .Normalized.Outputs}}ret{{$i}} = new({{bindtype .Type $structs}})
+		{{end}}
+	){{end}}
+	out := {{if .Structured}}ret{{else}}{{if eq (len .Normalized.Outputs) 1}}ret0{{else}}&[]interface{}{
+		{{range $i, $_ := .Normalized.Outputs}}ret{{$i}},
+		{{end}}
+	}{{end}}{{end}}
+	err := _{{$contract.Type}}.Call(opts, out, "{{.Original.Name}}" {{range .Normalized.Inputs}}, {{.Name}}{{end}})
+	return {{if .Structured}}*ret,{{else}}{{range $i, $_ := .Normalized.Outputs}}*ret{{$i}},{{end}}{{end}} err
+}
+{{end}}
 
+///////////////////////////
+//		Transactions
+/////////////////////////
+
+{{range .Transacts}}
+// {{.Normalized.Name}} is a paid mutator transaction binding the contract method 0x{{printf "%x" .Original.ID}}.
+//
+// Solidity: {{formatmethod .Original $structs}}
+func (_{{$contract.Type}} *{{$contract.Type}}) {{.Normalized.Name}}(opts *bind.TransactOpts {{range .Normalized.Inputs}}, {{.Name}} {{bindtype .Type $structs}} {{end}}) (*types.Transaction, error) {
+	return _{{$contract.Type}}.Transact(opts, "{{.Original.Name}}" {{range .Normalized.Inputs}}, {{.Name}}{{end}})
+}
+{{end}}
+
+{{end}}
+
+///////////////////////////
+//		Events
+/////////////////////////
+
+
+///////////////////////////
+//		Bin and ABI
+/////////////////////////
+var {{.Type}}Bin = "0x{{.InputBin}}"
+const {{.Type}}ABI = "{{.InputABI}}"
 `
+
+// // for event in events make events + unpacker + parser
+// // {{$contract.Type}}{{.Normalized.Name}} represents a {{.Normalized.Name}} event raised by the {{$contract.Type}} contract.
+// type {{$contract.Type}}{{.Normalized.Name}} struct { {{range .Normalized.Inputs}}
+// 	{{capitalise .Name}} {{if .Indexed}}{{bindtopictype .Type $structs}}{{else}}{{bindtype .Type $structs}}{{end}}; {{end}}
+// 	Raw types.Log // Blockchain specific contextual infos
+// }
