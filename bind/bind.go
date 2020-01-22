@@ -146,6 +146,7 @@ func Bind(types []string, abis []string, bytecodes []string, pkg string) (string
 				transacts[original.Name] = &tmplMethod{Original: original, Normalized: normalized, Structured: structured(original.Outputs)}
 			}
 		}
+		var eventList []*tmplEvent
 		for _, original := range evmABI.Events {
 			// Skip anonymous events as they don't support explicit filtering
 			if original.Anonymous {
@@ -173,7 +174,9 @@ func Bind(types []string, abis []string, bytecodes []string, pkg string) (string
 				}
 			}
 			// Append the event to the accumulator list
-			events[original.Name] = &tmplEvent{Original: original, Normalized: normalized, Topic: original.ID().Hex()}
+			newEvent := &tmplEvent{Original: original, Normalized: normalized, Topic: original.ID().Hex()}
+			events[original.Name] = newEvent
+			eventList = append(eventList, newEvent)
 		}
 
 		// There is no easy way to pass arbitrary java objects to the Go side.
@@ -189,6 +192,7 @@ func Bind(types []string, abis []string, bytecodes []string, pkg string) (string
 			Calls:       calls,
 			Transacts:   transacts,
 			Events:      events,
+			EventList:   eventList,
 			Libraries:   make(map[string]string),
 		}
 		// Function 4-byte signatures are stored in the same sequence

@@ -10,6 +10,6 @@ go-ethereum (probably something)
 
 ### cli 
 
-buddy abigen "path/to/abi/and/or/bin"
-buddy solc "path/to/source"
+buddy abigen "path/to/abi/and/maybe/a/bin"
+buddy solc "path/to/source.sol"
 

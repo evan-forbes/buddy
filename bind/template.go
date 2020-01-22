@@ -36,8 +36,9 @@ type tmplContract struct {
 	Calls       map[string]*tmplMethod // Contract calls that only read state data
 	Transacts   map[string]*tmplMethod // Contract calls that write state data
 	Events      map[string]*tmplEvent  // Contract events accessors
-	Libraries   map[string]string      // Same as tmplData, but filtered to only keep what the contract needs
-	Library     bool                   // Indicator whether the contract is a library
+	EventList   []*tmplEvent
+	Libraries   map[string]string // Same as tmplData, but filtered to only keep what the contract needs
+	Library     bool              // Indicator whether the contract is a library
 }
 
 // tmplMethod is a wrapper around an abi.Method that contains a few preprocessed
@@ -162,6 +163,10 @@ func (_{{$contract.Type}}Log *{{$contract.Type}}Log) Parse{{.Normalized.Name}}Lo
 }
 
 {{end}}
+func (_{{$contract.Type}} *{{$contract.Type}}) Mux(ctx context.Context, client bind.ContractBackend,) ({{range $contract.EventList}}<-chan *{{.Normalized.Name}}Log, {{end}} <-chan error) {
+
+}
+
 //////////////////////////////////////////////////////
 //		Bin and ABI
 ////////////////////////////////////////////////////
