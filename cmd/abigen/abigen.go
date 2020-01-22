@@ -7,53 +7,85 @@ import (
 	"strings"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/pkg/errors"
 
+	"github.com/evan-forbes/buddy/bind"
 	"github.com/evan-forbes/wand"
 )
 
 // Spell funnels arguments and flags to the bite command
 type Spell struct{}
 
+// TODOS:
+// - load files properly and check local path for many bins and abis
+// - generate code maybe modify to generate into files by type
+// - figure out how abigen inputs types
+// - write to file
+// - generate code and fix bugs
+
 // Cast fullfills the wand.Spell interface
 func (s *Spell) Cast(ctx wand.Context) {
-	// set flags and arsg
+	// set flags and args
 	flags := ctx.Flags()
 	args := ctx.Args()
 	// check to see if path was provided
 	path := args["abigen"]
 
-	// use specific flag OR look for files in the working directory
+	if path != "" {
+		// load all bins abi and types
+	}
+
+	// use specific flag for paths OR look for files in the working directory
 	abiPath, has := flags["abi"]
 	if !has {
 		// search for abi file in current directory
 		abiPath, has = findFile(path, "abi")
 		if !has {
-			fmt.Println("could not find abi file in working dir")
+			fmt.Println("could not find abi file \n(use flag --abi= or ensure you have a abi in the working dir)")
 			return
 		}
 	}
 	binPath, has := flags["bin"]
 	if !has {
-		// search for abi file in current directory
-		binPath, has = findFile(path, "bin")
-		if !has {
-			fmt.Println("could not find bin file in working dir")
-			return
-		}
+		// search for bin file in current directory
+		binPath, _ = findFile(path, "bin")
 	}
 
-	// load files
-	abiFile, err := os.Open(abiPath)
+	// Load files
+	a, err := loadABI(abiPath)
 	if err != nil {
-		fmt.Println("Could not find file:", abiPath, err)
+		fmt.Println(err)
 		return
+	}
+	hexBin := loadBin(binPath)
+
+	bind.Bind()
+
+}
+
+func loadBin(path string) string {
+	if path == "" {
+		return ""
+	}
+	// load bin
+	rawBin, err := ioutil.ReadFile(path)
+	if err != nil {
+		fmt.Println("Could read bin file:", path, err)
+		return ""
+	}
+	return rawBin
+}
+
+func loadABI(path string) (*abi.ABI, error) {
+	abiFile, err := os.Open(path)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Could not open abi file: %s", path)
 	}
 	contractABI, err := abi.JSON(abiFile)
 	if err != nil {
-		fmt.Println("could not open abi file:", err)
-		return 
+		return nil, errors.Wrapf(err, "could not parse abi file: %s", path)
 	}
-	
+	return &contractABI, nil
 }
 
 // findFile returns the first file found with the provided type
