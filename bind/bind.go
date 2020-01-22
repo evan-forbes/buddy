@@ -18,12 +18,10 @@
 //
 // Detailed usage document and tutorial available on the go-ethereum Wiki page:
 // https://github.com/ethereum/go-ethereum/wiki/Native-DApps:-Go-bindings-to-Ethereum-contracts
-
 package bind
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"go/format"
 	"regexp"
@@ -146,7 +144,6 @@ func Bind(types []string, abis []string, bytecodes []string, pkg string) (string
 				transacts[original.Name] = &tmplMethod{Original: original, Normalized: normalized, Structured: structured(original.Outputs)}
 			}
 		}
-		var eventList []*tmplEvent
 		for _, original := range evmABI.Events {
 			// Skip anonymous events as they don't support explicit filtering
 			if original.Anonymous {
@@ -176,12 +173,6 @@ func Bind(types []string, abis []string, bytecodes []string, pkg string) (string
 			// Append the event to the accumulator list
 			newEvent := &tmplEvent{Original: original, Normalized: normalized, Topic: original.ID().Hex()}
 			events[original.Name] = newEvent
-			eventList = append(eventList, newEvent)
-		}
-
-		// There is no easy way to pass arbitrary java objects to the Go side.
-		if len(structs) > 0 && lang == LangJava {
-			return "", errors.New("java binding for tuple arguments is not supported yet")
 		}
 
 		contracts[types[i]] = &tmplContract{
@@ -192,7 +183,6 @@ func Bind(types []string, abis []string, bytecodes []string, pkg string) (string
 			Calls:       calls,
 			Transacts:   transacts,
 			Events:      events,
-			EventList:   eventList,
 			Libraries:   make(map[string]string),
 		}
 		// Function 4-byte signatures are stored in the same sequence

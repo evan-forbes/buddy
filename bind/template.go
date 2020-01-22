@@ -36,9 +36,8 @@ type tmplContract struct {
 	Calls       map[string]*tmplMethod // Contract calls that only read state data
 	Transacts   map[string]*tmplMethod // Contract calls that write state data
 	Events      map[string]*tmplEvent  // Contract events accessors
-	EventList   []*tmplEvent
-	Libraries   map[string]string // Same as tmplData, but filtered to only keep what the contract needs
-	Library     bool              // Indicator whether the contract is a library
+	Libraries   map[string]string      // Same as tmplData, but filtered to only keep what the contract needs
+	Library     bool                   // Indicator whether the contract is a library
 }
 
 // tmplMethod is a wrapper around an abi.Method that contains a few preprocessed
@@ -74,8 +73,8 @@ type tmplStruct struct {
 // tmplSourceGo is the Go source template use to generate the contract binding
 // based on.
 const tmplSourceGo = `
-
-package {{.Package}}
+{{$pkg := .Package}}
+package {{$pkg}}
 
 {{$structs := .Structs}}
 {{range $contract := .Contracts}}
@@ -91,6 +90,36 @@ func New{{.Type}}(address common.Address, backend bind.ContractBackend) (*{{.Typ
 	contract := bind.NewBoundContract(address, a, backend, backend, backend)
 	return &{{.Type}}(*contract), nil
 }
+
+{{if .InputBin}}
+//////////////////////////////////////////////////////
+//		Deployment
+////////////////////////////////////////////////////
+
+// Deploy{{.Type}} deploys a new Ethereum contract, binding an instance of {{.Type}} to it.
+func Deploy{{.Type}}(auth *bind.TransactOpts, backend bind.ContractBackend {{range .Constructor.Inputs}}, {{.Name}} {{bindtype .Type $structs}}{{end}}) (common.Address, *types.Transaction, *{{.Type}}, error) {
+  parsed, err := abi.JSON(strings.NewReader({{.Type}}ABI))
+  if err != nil {
+	return common.Address{}, nil, nil, err
+  }
+  address, tx, contract, err := bind.DeployContract(auth, parsed, common.FromHex({{.Type}}Bin), backend {{range .Constructor.Inputs}}, {{.Name}}{{end}})
+  if err != nil {
+	return common.Address{}, nil, nil, err
+  }
+  return address, tx, &{{.Type}}(*contract), nil
+}
+{{end}}
+
+//////////////////////////////////////////////////////
+//		Structs
+////////////////////////////////////////////////////
+{{range $structs}}
+	// {{.Name}} is an auto generated low-level Go binding around an user-defined struct.
+	type {{.Name}} struct {
+	{{range $field := .Fields}}
+	{{$field.Name}} {{$field.Type}}{{end}}
+	}
+{{end}}
 
 //////////////////////////////////////////////////////
 //		Data Calls
@@ -134,43 +163,42 @@ func (_{{$contract.Type}} *{{$contract.Type}}) {{.Normalized.Name}}(opts *bind.T
 
 {{range .Events}}
 //////// {{.Normalized.Name}} ////////
+// {{$contract.Type}}{{.Normalized.Name}}ID is the hex of the Topic Hash
+const {{$contract.Type}}{{.Normalized.Name}}ID = "{{.Topic}}"
+
 // {{$contract.Type}}{{.Normalized.Name}}Log represents a {{.Normalized.Name}} event raised by the {{$contract.Type}} contract.
-// Topic: {{.Topic}}
 type {{$contract.Type}}{{.Normalized.Name}}Log struct { {{range .Normalized.Inputs}}
 	{{capitalise .Name}} {{if .Indexed}}{{bindtopictype .Type $structs}}{{else}}{{bindtype .Type $structs}}{{end}}; {{end}}
 	Raw types.Log // Blockchain specific contextual infos
 }
 
-// Unpack is a generalized log parse operation binding the contract event {{.Topic}}
-// follows the parse.Unpacker interface, see the below Parse Method a type checked return
+// Unpack{{.Normalized.Name}}Log is a log parse operation binding the contract event {{.Topic}}
 // Solidity: {{formatevent .Original $structs}}
-func (_{{$contract.Type}}Log *{{$contract.Type}}Log) Unpack(log types.Log) (parsed interface{}, err error) {
+func (_{{$contract.Type}} *{{$contract.Type}}) Unpack{{.Normalized.Name}}Log(log types.Log) (*{{$contract.Type}}{{.Normalized.Name}}Log, error) {
 	event := new({{$contract.Type}}{{.Normalized.Name}}Log)
-	if err := _{{$contract.Type}}.contract.UnpackLog(event, "{{.Original.Name}}", log); err != nil {
-		return nil, err
-	}
-	return event, nil
-}
-
-// Parse{{.Normalized.Name}}Log is a log parse operation binding the contract event {{.Topic}}
-// Solidity: {{formatevent .Original $structs}}
-func (_{{$contract.Type}}Log *{{$contract.Type}}Log) Parse{{.Normalized.Name}}Log(log types.Log) (*{{$contract.Type}}{{.Normalized.Name}}Log, error) {
-	event := new({{$contract.Type}}{{.Normalized.Name}}Log)
-	if err := _{{$contract.Type}}.contract.UnpackLog(event, "{{.Original.Name}}", log); err != nil {
+	if err := _{{$contract.Type}}.UnpackLog(event, "{{.Original.Name}}", log); err != nil {
 		return nil, err
 	}
 	return event, nil
 }
 
 {{end}}
-func (_{{$contract.Type}} *{{$contract.Type}}) Mux(ctx context.Context, client bind.ContractBackend,) ({{range $contract.EventList}}<-chan *{{.Normalized.Name}}Log, {{end}} <-chan error) {
 
-}
+// MuxTemp can be copied and pasted to save ya a quick minute when distinguishing between log data
+// func MuxTemp(log types.Log) {
+// 	switch log.Topics[0].Hex() { {{range .Events}}
+// 	case {{$pkg}}.{{$contract.Type}}{{.Normalized.Name}}ID:
+// 	{{end}}
+// 	}
+// }
 
 //////////////////////////////////////////////////////
 //		Bin and ABI
 ////////////////////////////////////////////////////
+// {{.Type}}Bin is used to deploy the generated contract
 var {{.Type}}Bin = "0x{{.InputBin}}"
+
+// {{.Type}}ABI is used to communicate with the compiled solidity code of the generated contract
 const {{.Type}}ABI = "{{.InputABI}}"
 {{end}}
 `
