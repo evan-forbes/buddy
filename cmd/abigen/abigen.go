@@ -13,9 +13,6 @@ import (
 	"github.com/evan-forbes/wand"
 )
 
-// Spell funnels arguments and flags to the bite command
-type Spell struct{}
-
 // TODOS:
 // - load files properly and check local path for many bins and abis
 // - generate code maybe modify to generate into files by type
@@ -23,15 +20,15 @@ type Spell struct{}
 // - write to file
 // - generate code and fix bugs
 
-// Cast fullfills the wand.Spell interface
-func (s *Spell) Cast(ctx wand.Context) {
+// Cast runs the abigen command
+func Cast(ctx *cli.Context) error {
 	// set flags and args
 	flags := ctx.Flags()
 	args := ctx.Args()
 	// check to see if path was provided
 	path := args["abigen"]
 
-	if path != "" {
+	if path != "" !strings.Contains(path, "--") {
 		// load all bins abi and types
 	}
 
