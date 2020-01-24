@@ -6,7 +6,7 @@ Interface focused go bindings for ethereum contracts. Allows for easy mock testi
 
 ### Cool Stuff
 
-While generating go bindings for smart contracts is nothing new, these bindings are focused on simpler more solidity like usage. Writing your own interfaces for something as common as an erc20 contract is made significantly easier.
+While generating go bindings for smart contracts is nothing new, these bindings allow one to write go interfaces for generated code.
 
 ```go
 package main
