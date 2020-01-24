@@ -1,18 +1,20 @@
 # Buddy
 
-__This project is a work in progress and I'm adding commands as I need them.__ Unless of course you want to add any, which you totally should!
+__This project is a work in progress and I'm adding commands as I need them.__
 
 Interface focused go bindings for ethereum contracts. Allows for easy mock testing for smart contracts in go (!), amongst other quality of life improvements for those of us who prefer to use go to interact with smart contracts.
 
 ### Cool Stuff
 
-While generating go bindings for smart contracts is nothing new, these bindings are focused on simpler more solidity like usage.
+While generating go bindings for smart contracts is nothing new, these bindings are focused on simpler more solidity like usage. Writing your own interfaces for something as common as an erc20 contract is made significantly easier.
 
 ```go
 package main
 
 import (
     "github.com/your-username/coin" // import your generated bindings
+    "github.com/ethereum/go-ethereum/accounts/abi"
+    "github.com/ethereum/go-ethereum/common"
 )
 
 type Erc20 interface {
@@ -33,8 +35,7 @@ func main() {
     Erc20Procedure(c)
 }
 
-```
-Doing something similar in the standard abigen in go-ethereum would require a bit more work and a lot less flexibility. 
+``` 
 
 ### Dependencies
 
