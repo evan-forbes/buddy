@@ -79,6 +79,8 @@ package {{$pkg}}
 {{$structs := .Structs}}
 {{range $contract := .Contracts}}
 
+// {{.Type}} is a wrapper around BoundContract, enforcing type checking and including
+// QoL helper methods
 type {{.Type}} bind.BoundContract
 
 // New{{.Type}} creates a new instance of {{.Type}}, bound to a specific deployed contract.
