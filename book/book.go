@@ -9,6 +9,8 @@ import (
 	"github.com/pkg/errors"
 )
 
+// TODO: delete this package in favor of just using accounts? combine at the very least
+
 type Book map[string]common.Address
 
 func (b *Book) Write(filename string) error {
