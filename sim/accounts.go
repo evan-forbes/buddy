@@ -1,8 +1,8 @@
 package sim
 
 import (
+	"context"
 	"crypto/ecdsa"
-	"errors"
 	"fmt"
 	"math/big"
 	"strings"
@@ -10,16 +10,55 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
 // Account represents a singular wallet
 type Account struct {
-	Name         string            `json:"name"`
-	Address      common.Address    `json:"address"`
-	PrivKey      *ecdsa.PrivateKey `json:"private_key"`
-	Balance      *big.Int          `json:"balance"`
-	TransactOpts *bind.TransactOpts
+	Name    string            `json:"name"`
+	Address common.Address    `json:"address"`
+	PrivKey *ecdsa.PrivateKey `json:"private_key"`
+	Balance *big.Int          `json:"balance"`
+	TxOpts  *bind.TransactOpts
+}
+
+// IncrNonce increases the nonce by plus (default of 1 if plus == nil)
+func (a *Account) IncrNonce(plus *big.Int) {
+	if plus == nil {
+		plus = new(big.Int).SetInt64(1)
+	}
+	a.TxOpts.Nonce.Add(a.TxOpts.Nonce, plus)
+}
+
+// SendETH signs a transaction and sends it to the client sending the provided amount of ETH
+// to the provided address
+func (a *Account) SendETH(client bind.ContractBackend, addr common.Address, amount *big.Int) (string, error) {
+	tx := types.NewTransaction(
+		a.TxOpts.Nonce.Uint64(), addr, amount,
+		a.TxOpts.GasLimit,
+		a.TxOpts.GasPrice,
+		[]byte{},
+	)
+	tx, err := a.Sign(tx)
+	if err != nil {
+		return "", err
+	}
+	err = client.SendTransaction(context.Background(), tx)
+	if err != nil {
+		return "", err
+	}
+	return tx.Hash().Hex(), nil
+}
+
+// Sign uses info in Account a to sign the provided transaction
+func (a *Account) Sign(tx *types.Transaction) (*types.Transaction, error) {
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(big.NewInt(1)), a.PrivKey)
+	if err != nil {
+		return nil, err
+	}
+	a.IncrNonce(nil)
+	return signedTx, nil
 }
 
 // NewAccount issues a new account with a freshly generated private key
@@ -32,10 +71,10 @@ func NewAccount(name string, bal *big.Int) (*Account, error) {
 	topt := bind.NewKeyedTransactor(priv)
 
 	return &Account{
-		Name:        name,
-		Address:     topt.From,
-		TransactOps: topt,
-		Balance:     bal,
+		Name:    name,
+		Address: topt.From,
+		TxOpts:  topt,
+		Balance: bal,
 	}, nil
 }
 
@@ -44,11 +83,11 @@ type Accounts map[string]*Account
 
 // NewAccounts generates private keys and author accounts for testing
 func NewAccounts(names ...string) Accounts {
-	out := make(map[string]*bind.TransactOpts)
+	out := make(map[string]*Account)
 	for _, name := range names {
 		acc, err := NewAccount(name, new(big.Int))
 		if err != nil {
-			return nil, errors.Wrap(err, "Could not generate account")
+			return nil
 		}
 		out[name] = acc
 	}
@@ -56,10 +95,10 @@ func NewAccounts(names ...string) Accounts {
 }
 
 // Genesis converts transactors to Genesis Accounts with 100 ETH allocations
-func (ta Accounts) genesis() core.GenesisAlloc {
+func (ta Accounts) Genesis() core.GenesisAlloc {
 	out := make(core.GenesisAlloc)
 	for _, acc := range ta {
-		out[acc.TransactOpts.From] = core.GenesisAccount{Balance: acc.Balance}
+		out[acc.TxOpts.From] = core.GenesisAccount{Balance: acc.Balance}
 	}
 	return out
 }
@@ -68,7 +107,7 @@ func (ta Accounts) genesis() core.GenesisAlloc {
 func (ta *Accounts) Render() string {
 	var out []string
 	for name, auth := range *ta {
-		s := fmt.Sprintf("%s: %s", name, auth.From.Hex())
+		s := fmt.Sprintf("%s: %s", name, auth.TxOpts.From.Hex())
 		out = append(out, s)
 	}
 	return strings.Join(out, "\n")
