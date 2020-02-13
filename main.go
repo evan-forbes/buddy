@@ -19,12 +19,7 @@ func main() {
 	app.EnableBashCompletion = true
 	app.Name = "buddy"
 
-	// var (
-	// 	abiPath string
-	// 	binPath string
-	// 	tp      string
-	// )
-
+	// abiFlags are flags for the subcommand abigen
 	abiFlags := []cli.Flag{
 		cli.StringFlag{
 			Name:  "abi, a",
@@ -58,6 +53,7 @@ func main() {
 		},
 	}
 
+	// subcommands
 	app.Commands = []cli.Command{
 		{
 			Name:   "abigen",
