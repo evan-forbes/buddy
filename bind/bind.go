@@ -34,7 +34,7 @@ import (
 )
 
 // TODO:
-// - Remove all the code that is no longer needed
+// - Remove all the code that is no longer needed (Java related)
 // - Simplify by eliminating support for multiple contracts,
 //   replace this functionality by calling once per contract
 //   writing to multiple files.
