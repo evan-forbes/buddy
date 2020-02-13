@@ -2,9 +2,12 @@ package sim
 
 import (
 	"context"
+	"math/big"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind/backends"
 )
+
+// TODO: delete and make it something that doesn't just install arbitrary defaults
 
 // Backend manages the simulated backend and accounts for testing
 type Backend struct {
@@ -31,20 +34,20 @@ func (back *Backend) SetGasPrice() error {
 		return err
 	}
 	for _, auth := range back.Accounts {
-		auth.GasPrice = gasPrice
+		auth.TxOpts.GasPrice = gasPrice
 	}
 	return nil
 }
 
-// SetNonce uses the provided client to suggest a gas price and sets it
+// SetNonce uses the provided client fetch nonce for each account and sets it
 // for all accounts.
 func (back *Backend) SetNonce() error {
 	for _, auth := range back.Accounts {
-		nonce, err := back.PendingNonceAt(context.Background(), auth.From)
+		nonce, err := back.PendingNonceAt(context.Background(), auth.TxOpts.From)
 		if err != nil {
 			return err
 		}
-		auth.Nonce = nonce
+		auth.TxOpts.Nonce = new(big.Int).SetUint64(nonce)
 	}
 	return nil
 }
