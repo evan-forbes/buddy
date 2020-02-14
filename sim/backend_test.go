@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/evan-forbes/buddy/cmd"
@@ -54,9 +53,15 @@ func TestBackendLife(t *testing.T) {
 		}
 	}()
 
-	for i := 0; i < 4; i++ {
-		back.Commit()
-		time.Sleep(time.Second)
-	}
+	go func() {
+		for {
+			select {
+			case <-mngr.Ctx.Done():
+				return
+			default:
+				back.Commit()
+			}
+		}
+	}()
 	<-mngr.Done()
 }
