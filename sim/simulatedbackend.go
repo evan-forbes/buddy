@@ -42,7 +42,7 @@ import (
 	"github.com/ethereum/go-ethereum/rpc"
 )
 
-// TODO: get rid of
+// TODO: merge filter backend with Simulated backend reorg cause giant files suck
 
 // This nil assignment ensures compile time that SimulatedBackend implements bind.ContractBackend.
 var _ bind.ContractBackend = (*SimulatedBackend)(nil)
@@ -280,15 +280,15 @@ func (b *SimulatedBackend) HeaderByHash(ctx context.Context, hash common.Hash) (
 
 // HeaderByNumber returns a block header from the current canonical chain. If number is
 // nil, the latest known header is returned.
-func (b *SimulatedBackend) HeaderByNumber(ctx context.Context, block *big.Int) (*types.Header, error) {
+func (b *SimulatedBackend) HeaderByNumber(ctx context.Context, block rpc.BlockNumber) (*types.Header, error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	if block == nil || block.Cmp(b.pendingBlock.Number()) == 0 {
+	if block == 0 {
 		return b.blockchain.CurrentHeader(), nil
 	}
 
-	return b.blockchain.GetHeaderByNumber(uint64(block.Int64())), nil
+	return b.blockchain.GetHeaderByNumber(uint64(block)), nil
 }
 
 // TransactionCount returns the number of transactions in a given block
@@ -652,6 +652,14 @@ func (fb *filterBackend) GetReceipts(ctx context.Context, hash common.Hash) (typ
 	return rawdb.ReadReceipts(fb.db, hash, *number, fb.bc.Config()), nil
 }
 
+func (b *SimulatedBackend) GetReceipts(ctx context.Context, hash common.Hash) (types.Receipts, error) {
+	number := rawdb.ReadHeaderNumber(b.database, hash)
+	if number == nil {
+		return nil, nil
+	}
+	return rawdb.ReadReceipts(b.database, hash, *number, b.blockchain.Config()), nil
+}
+
 func (fb *filterBackend) GetLogs(ctx context.Context, hash common.Hash) ([][]*types.Log, error) {
 	number := rawdb.ReadHeaderNumber(fb.db, hash)
 	if number == nil {
@@ -666,6 +674,27 @@ func (fb *filterBackend) GetLogs(ctx context.Context, hash common.Hash) ([][]*ty
 		logs[i] = receipt.Logs
 	}
 	return logs, nil
+}
+
+// GetLogs fullfills the filters.Backend interface
+func (b *SimulatedBackend) GetLogs(ctx context.Context, hash common.Hash) ([][]*types.Log, error) {
+	number := rawdb.ReadHeaderNumber(b.database, hash)
+	if number == nil {
+		return nil, nil
+	}
+	receipts := rawdb.ReadReceipts(b.database, hash, *number, b.blockchain.Config())
+	if receipts == nil {
+		return nil, nil
+	}
+	logs := make([][]*types.Log, len(receipts))
+	for i, receipt := range receipts {
+		logs[i] = receipt.Logs
+	}
+	return logs, nil
+}
+
+func (fb *filterBackend) SubscribeNewTxsEvent(ch chan<- core.NewTxsEvent) event.Subscription {
+	return nullSubscription()
 }
 
 func (fb *filterBackend) SubscribeNewTxsEvent(ch chan<- core.NewTxsEvent) event.Subscription {
@@ -692,6 +721,10 @@ func (fb *filterBackend) BloomStatus() (uint64, uint64) { return 4096, 0 }
 
 func (fb *filterBackend) ServiceFilter(ctx context.Context, ms *bloombits.MatcherSession) {
 	panic("not supported")
+}
+
+func (b *SimulatedBackend) ServiceFilter(ctx context.Context, ms *bloombits.MatcherSession) {
+	panic("Service filter for simulated backend is not supported")
 }
 
 func nullSubscription() event.Subscription {

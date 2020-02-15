@@ -106,16 +106,38 @@ func (ta Accounts) Genesis() core.GenesisAlloc {
 // Render formats account info for easy printing
 func (ta *Accounts) Render() string {
 	var out []string
-	for name, auth := range *ta {
-		s := fmt.Sprintf("%s: %s", name, auth.TxOpts.From.Hex())
+	for name, acc := range *ta {
+		s := fmt.Sprintf("%s: %s", name, acc.TxOpts.From.Hex())
 		out = append(out, s)
 	}
 	return strings.Join(out, "\n")
 }
 
-// NewBlankAuth generates a new private key and creates an authenticated
+// SetGasPrice uses the provided client to suggest a gas price and sets it
+// for all accounts.
+func (ta *Accounts) SetGasPrice(gasPrice *big.Int) error {
+	for _, acc := range *ta {
+		acc.TxOpts.GasPrice = gasPrice
+	}
+	return nil
+}
+
+// SetNonce uses the provided client fetch nonce for each account and sets it
+// for all accounts.
+func (ta *Accounts) SetNonce(back bind.ContractBackend) error {
+	for _, acc := range *ta {
+		nonce, err := back.PendingNonceAt(context.Background(), acc.TxOpts.From)
+		if err != nil {
+			return err
+		}
+		acc.TxOpts.Nonce = new(big.Int).SetUint64(nonce)
+	}
+	return nil
+}
+
+// newBlankAuth generates a new private key and creates an authenticated
 // transactor with that key
-func NewBlankAuth() (*bind.TransactOpts, error) {
+func newBlankAuth() (*bind.TransactOpts, error) {
 	privateKey, err := crypto.GenerateKey()
 	if err != nil {
 		return nil, err
