@@ -697,7 +697,7 @@ func (fb *filterBackend) SubscribeNewTxsEvent(ch chan<- core.NewTxsEvent) event.
 	return nullSubscription()
 }
 
-func (fb *filterBackend) SubscribeNewTxsEvent(ch chan<- core.NewTxsEvent) event.Subscription {
+func (fb *SimulatedBackend) SubscribeNewTxsEvent(ch chan<- core.NewTxsEvent) event.Subscription {
 	return nullSubscription()
 }
 
@@ -705,15 +705,31 @@ func (fb *filterBackend) SubscribeChainEvent(ch chan<- core.ChainEvent) event.Su
 	return fb.bc.SubscribeChainEvent(ch)
 }
 
+func (s *SimulatedBackend) SubscribeChainEvent(ch chan<- core.ChainEvent) event.Subscription {
+	return s.blockchain.SubscribeChainEvent(ch)
+}
+
 func (fb *filterBackend) SubscribeRemovedLogsEvent(ch chan<- core.RemovedLogsEvent) event.Subscription {
 	return fb.bc.SubscribeRemovedLogsEvent(ch)
+}
+
+func (s *SimulatedBackend) SubscribeRemovedLogsEvent(ch chan<- core.RemovedLogsEvent) event.Subscription {
+	return s.blockchain.SubscribeRemovedLogsEvent(ch)
 }
 
 func (fb *filterBackend) SubscribeLogsEvent(ch chan<- []*types.Log) event.Subscription {
 	return fb.bc.SubscribeLogsEvent(ch)
 }
 
+func (s *SimulatedBackend) SubscribeLogsEvent(ch chan<- []*types.Log) event.Subscription {
+	return s.blockchain.SubscribeLogsEvent(ch)
+}
+
 func (fb *filterBackend) SubscribePendingLogsEvent(ch chan<- []*types.Log) event.Subscription {
+	return nullSubscription()
+}
+
+func (s *SimulatedBackend) SubscribePendingLogsEvent(ch chan<- []*types.Log) event.Subscription {
 	return nullSubscription()
 }
 

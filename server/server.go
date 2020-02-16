@@ -15,6 +15,9 @@ import (
 // I need to plug the simulated backend interface into the interfaces that it
 // implements, and then plug those things into the node rpc example below
 
+// todo: find out all apis included in eth/backend.go ethereum.APIs() and implement/test one by connected it below
+// 		 - make a client that connects to the local host or whatever ip is being used.
+
 type Server struct {
 	Backend *sim.SimulatedBackend
 }
@@ -37,11 +40,18 @@ func (s *Server) Start(p *p2p.Server) error {
 }
 
 func (s *Server) Stop() error {
+	s.Backend.Close()
+	s.Backend.ChainDb().Close()
 	return nil
 }
 
 func Constructor(ctx *node.ServiceContext) (node.Service, error) {
-	return &Server{}, nil
+	accnts := sim.NewAccounts("owner", "Alice", "Bob", "Celine", "Doug", "Erin", "Frank")
+	genesisAlloc := accnts.Genesis()
+	s := &Server{
+		Backend: sim.NewSimulatedBackend(genesisAlloc, uint64(4712388)),
+	}
+	return s, nil
 }
 
 func Boot(config *node.Config) error {
