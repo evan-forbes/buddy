@@ -1,0 +1,1 @@
+this package was forked from the go-ethereum internal package. It has not been altered, but must be forked because it's in internal. Sorry.
