@@ -9,6 +9,17 @@ import (
 	"github.com/evan-forbes/buddy/cmd/abigen"
 )
 
+// I need to find out how to design services, like the example node
+// and I need to get rid of the services that I don't need.
+
+// those services connect throught the websocket and http server in 
+// the node instance. the node instance uses the startRPC method to
+// boot up operations. The startRPC method asks for []rpc.API to start
+
+// still need to figure out how to connect the simulated blockchain to the local rpc
+
+// implement loading and unloading of a chain using cmdutils.ImportChain
+
 // Planned Commands:
 //  - mock
 //  - sim
