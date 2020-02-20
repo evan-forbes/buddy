@@ -9,6 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/p2p"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/evan-forbes/buddy/sim"
+	"github.com/evan-forbes/buddy/ethapi"
 	"github.com/pkg/errors"
 )
 
@@ -25,6 +26,7 @@ type Server struct {
 func (s *Server) Protocols() []p2p.Protocol { return nil }
 
 func (s *Server) APIs() []rpc.API {
+	// nonceLock := new(AddrLocker)
 	return []rpc.API{
 		{
 			Namespace: "eth",
@@ -32,10 +34,35 @@ func (s *Server) APIs() []rpc.API {
 			Service:   filters.NewPublicFilterAPI(s.Backend, false),
 			Public:    true,
 		},
+		{
+			Namespace: "eth",
+			Version:   "1.0",
+			Service:   ethapi.NewPublicEthereumAPI(s.Backend),
+			Public:    true,
+		}, 
+		{
+			Namespace: "eth",
+			Version:   "1.0",
+			Service:   ethapi.NewPublicBlockChainAPI(s.Backend),
+			Public:    true,
+		}, // might need to implement transaction pool for the simback
+		// {
+		// 	Namespace: "eth",
+		// 	Version:   "1.0",
+		// 	Service:   NewPublicTransactionPoolAPI(s.Backend, nonceLock),
+		// 	Public:    true,
+		// }, 
+		// {
+		// 	Namespace: "txpool",
+		// 	Version:   "1.0",
+		// 	Service:   NewPublicTxPoolAPI(s.Backend),
+		// 	Public:    true,
+		// },
 	}
 }
 
 func (s *Server) Start(p *p2p.Server) error {
+	// Don't want to start any p2p servers, the rest is handled by the node
 	return nil
 }
 
