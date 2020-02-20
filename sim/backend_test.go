@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/evan-forbes/buddy/cmd"
@@ -59,6 +60,7 @@ func TestBackendLife(t *testing.T) {
 			case <-mngr.Ctx.Done():
 				return
 			default:
+				time.Sleep(time.Second)
 				back.Commit()
 			}
 		}

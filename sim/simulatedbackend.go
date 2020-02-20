@@ -23,8 +23,11 @@ import (
 	"math/big"
 	"sync"
 	"time"
+	"log"
 
 	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/eth/downloader"
+	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
@@ -70,6 +73,10 @@ type SimulatedBackend struct {
 	events *filters.EventSystem // Event system for filtering log events live
 
 	config *params.ChainConfig
+
+	AccountMngr *accounts.Manager
+
+	// TxPool *core.TxPool
 }
 
 // NewSimulatedBackendWithDatabase creates a new binding backend based on the given database
@@ -85,8 +92,13 @@ func NewSimulatedBackendWithDatabase(database ethdb.Database, alloc core.Genesis
 		config:     genesis.Config,
 		events:     filters.NewEventSystem(&filterBackend{database, blockchain}, false),
 	}
+	// txpool := NewTxPoll(txconfig, chainConfig, backend.blockchain)
 	backend.rollback()
 	return backend
+}
+
+func (b *SimulatedBackend) AccountManager() *accounts.Manager {
+	return b.AccountMngr
 }
 
 // NewSimulatedBackend creates a new binding backend using a simulated blockchain
@@ -138,7 +150,8 @@ func (b *SimulatedBackend) stateByBlockNumber(ctx context.Context, blockNumber *
 	if blockNumber == nil || blockNumber.Cmp(b.blockchain.CurrentBlock().Number()) == 0 {
 		return b.blockchain.State()
 	}
-	block, err := b.BlockByNumber(ctx, blockNumber)
+	rpcBlock := rpc.BlockNumber(blockNumber.Int64())
+	block, err := b.BlockByNumber(ctx, rpcBlock)
 	if err != nil {
 		return nil, err
 	}
@@ -243,17 +256,53 @@ func (b *SimulatedBackend) BlockByHash(ctx context.Context, hash common.Hash) (*
 	return nil, errBlockDoesNotExist
 }
 
-// BlockByNumber retrieves a block from the database by number, caching it
-// (associated with its hash) if found.
-func (b *SimulatedBackend) BlockByNumber(ctx context.Context, number *big.Int) (*types.Block, error) {
+// BlockByNumberOrHash retrieves a block based on the block hash
+func (b *SimulatedBackend) BlockByNumberOrHash(ctx context.Context, blockNrOrHash rpc.BlockNumberOrHash) (*types.Block, error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	if number == nil || number.Cmp(b.pendingBlock.Number()) == 0 {
+	if blockNrOrHash.BlockNumber != nil {
+		return b.BlockByNumber(ctx, *blockNrOrHash.BlockNumber)
+	}
+
+	if blockNrOrHash.Hash != nil {
+		h, ok := blockNrOrHash.Hash()
+		if !ok {
+			return nil, errors.New("Could not get valid non nil hash value from rpc.BlockNumberOrHash")
+		}
+		return b.BlockByHash(ctx, h)
+	}
+
+	return nil, errBlockDoesNotExist
+}
+
+func (b *SimulatedBackend) CurrentBlock() *types.Block {
+	return b.blockchain.CurrentBlock()
+}
+
+func (b *SimulatedBackend) Downloader() *downloader.Downloader {
+	log.Println("Downloader not currently implemented for SimulatedBackend")
+	return nil
+}
+
+// ChainConfig fullfills the ethapi.Backend interface by returning the config used
+// for the blockchain in use
+func (b *SimulatedBackend) ChainConfig() *params.ChainConfig {
+	return b.blockchain.Config()
+}
+
+// BlockByNumber retrieves a block from the database by number, caching it
+// (associated with its hash) if found.
+func (b *SimulatedBackend) BlockByNumber(ctx context.Context, number rpc.BlockNumber) (*types.Block, error) {
+	num := new(big.Int).SetInt64(int64(number))
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	if num == nil || num.Cmp(b.pendingBlock.Number()) == 0 {
 		return b.blockchain.CurrentBlock(), nil
 	}
 
-	block := b.blockchain.GetBlockByNumber(uint64(number.Int64()))
+	block := b.blockchain.GetBlockByNumber(uint64(number))
 	if block == nil {
 		return nil, errBlockDoesNotExist
 	}
@@ -276,6 +325,20 @@ func (b *SimulatedBackend) HeaderByHash(ctx context.Context, hash common.Hash) (
 	}
 
 	return header, nil
+}
+
+// ExtRPCEnabled tells the node that it should enable http/ws/graphql if implemented
+func (b *SimulatedBackend) ExtRPCEnabled() bool {
+	return true
+}
+
+// GetEVM retrieves the evm used
+func (b *SimulatedBackend) GetEVM(ctx context.Context, msg core.Message, state *state.StateDB, header *types.Header) (*vm.EVM, func() error, error) {
+	state.SetBalance(msg.From(), math.MaxBig256)
+	vmError := func() error { return nil }
+
+	context := core.NewEVMContext(msg, header, b.blockchain, nil)
+	return vm.NewEVM(context, state, b.blockchain.Config(), *b.blockchain.GetVMConfig()), vmError, nil
 }
 
 // HeaderByNumber returns a block header from the current canonical chain. If number is
