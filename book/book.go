@@ -16,7 +16,7 @@ type Book map[string]common.Address
 func (b *Book) Write(filename string) error {
 	file, err := os.OpenFile(filename, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return errors.Wrapf(
 			err,
 			"Could not open or make address book file: %s",
 			filename,
