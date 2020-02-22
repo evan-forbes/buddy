@@ -21,18 +21,19 @@ import (
 // Backend breaks the default go-ethereum monolith into slightly more
 // managable chunks.
 //
-// Consistency Note: each composite interface should be
+// Consistency Note: each interface wraps around the Thereum object to provide
+// additional functionality
 type Backend interface {
-	Stats
-	Blockchain
-	TxPool
-	Filter
-	Miner
+	Statser
+	Blockchainer
+	TxPooler
+	Filterer
+	Minerer
 }
 
-// Stats defines expectations for up to date info on
+// Statser defines expectations for up to date info on
 // the backend
-type Stats interface {
+type Statser interface {
 	ProtocolVersion() int
 	SuggestPrice(ctx context.Context) (*big.Int, error)
 	ExtRPCEnabled() bool
@@ -41,9 +42,9 @@ type Stats interface {
 	CurrentBlock() *types.Block
 }
 
-// Blockchain defines expectations for interacting with the blockchain being used in the
+// Blockchainer defines expectations for interacting with the blockchain being used in the
 // backend
-type Blockchain interface {
+type Blockchainer interface {
 	ChainDb() ethdb.Database
 	AccountManager() *accounts.Manager
 	Downloader() *downloader.Downloader
@@ -64,8 +65,8 @@ type Blockchain interface {
 	SubscribeChainSideEvent(ch chan<- core.ChainSideEvent) event.Subscription
 }
 
-// TxPoll defines expectations for the transaction pool in the Backend
-type TxPool interface {
+// TxPoller defines expectations for the transaction pool in the Backend
+type TxPooler interface {
 	// Transaction pool API
 	SendTx(ctx context.Context, signedTx *types.Transaction) error
 	GetTransaction(ctx context.Context, txHash common.Hash) (*types.Transaction, common.Hash, uint64, uint64, error)
@@ -78,8 +79,8 @@ type TxPool interface {
 	TxPool() *core.TxPool
 }
 
-// Filter defines expectations for the filtering logs in the Backend
-type Filter interface {
+// Filterer defines expectations for the filtering logs in the Backend
+type Filterer interface {
 	BloomStatus() (uint64, uint64)
 	GetLogs(ctx context.Context, blockHash common.Hash) ([][]*types.Log, error)
 	ServiceFilter(ctx context.Context, session *bloombits.MatcherSession)
@@ -88,8 +89,8 @@ type Filter interface {
 	SubscribeRemovedLogsEvent(ch chan<- core.RemovedLogsEvent) event.Subscription
 }
 
-// Miner defines expectations for the mining portion of Backend
-type Miner interface {
+// Minerer defines expectations for the mining portion of Backend
+type Minerer interface {
 	StartMining(threads int) error
 	StopMining()
 	IsMining() bool
