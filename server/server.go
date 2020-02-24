@@ -8,8 +8,9 @@ import (
 	"github.com/ethereum/go-ethereum/node"
 	"github.com/ethereum/go-ethereum/p2p"
 	"github.com/ethereum/go-ethereum/rpc"
-	"github.com/evan-forbes/buddy/sim"
 	"github.com/evan-forbes/buddy/ethapi"
+	"github.com/evan-forbes/buddy/sim"
+	"github.com/evan-forbes/buddy/thereum"
 	"github.com/pkg/errors"
 )
 
@@ -20,7 +21,7 @@ import (
 // 		 - make a client that connects to the local host or whatever ip is being used.
 
 type Server struct {
-	Backend *sim.SimulatedBackend
+	Backend *thereum.Thereum
 }
 
 func (s *Server) Protocols() []p2p.Protocol { return nil }
@@ -39,7 +40,7 @@ func (s *Server) APIs() []rpc.API {
 			Version:   "1.0",
 			Service:   ethapi.NewPublicEthereumAPI(s.Backend),
 			Public:    true,
-		}, 
+		},
 		{
 			Namespace: "eth",
 			Version:   "1.0",
@@ -51,7 +52,7 @@ func (s *Server) APIs() []rpc.API {
 		// 	Version:   "1.0",
 		// 	Service:   NewPublicTransactionPoolAPI(s.Backend, nonceLock),
 		// 	Public:    true,
-		// }, 
+		// },
 		// {
 		// 	Namespace: "txpool",
 		// 	Version:   "1.0",

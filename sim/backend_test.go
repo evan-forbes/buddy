@@ -1,16 +1,5 @@
 package sim
 
-import (
-	"context"
-	"fmt"
-	"sync"
-	"testing"
-	"time"
-
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/evan-forbes/buddy/cmd"
-)
-
 // func TestSendEth(t *testing.T) {
 // 	back := NewBackend(uint64(4712388))
 // 	alice := back.Accounts["Alice"]
@@ -18,52 +7,52 @@ import (
 
 // }
 
-func TestBackendLife(t *testing.T) {
-	var wg sync.WaitGroup
-	mngr := cmd.NewManager(context.Background(), &wg)
+// func TestBackendLife(t *testing.T) {
+// 	var wg sync.WaitGroup
+// 	mngr := cmd.NewManager(context.Background(), &wg)
 
-	go mngr.Listen()
+// 	go mngr.Listen()
 
-	back := NewBackend(uint64(4712388))
-	err := back.SetGasPrice()
-	if err != nil {
-		t.Error(err)
-	}
-	defer back.Close()
-	err = back.SetNonce()
-	if err != nil {
-		t.Error(err)
-	}
+// 	back := NewBackend(uint64(4712388))
+// 	err := back.SetGasPrice()
+// 	if err != nil {
+// 		t.Error(err)
+// 	}
+// 	defer back.Close()
+// 	err = back.SetNonce()
+// 	if err != nil {
+// 		t.Error(err)
+// 	}
 
-	headerch := make(chan *types.Header)
+// 	headerch := make(chan *types.Header)
 
-	sub, err := back.SubscribeNewHead(mngr.Ctx, headerch)
+// 	sub, err := back.SubscribeNewHead(mngr.Ctx, headerch)
 
-	go func() {
-		for {
-			select {
-			case head, ok := <-headerch:
-				if !ok {
-					return
-				}
-				fmt.Println(head.Hash().Hex())
-			case err := <-sub.Err():
-				t.Error(err)
-				return
-			}
-		}
-	}()
+// 	go func() {
+// 		for {
+// 			select {
+// 			case head, ok := <-headerch:
+// 				if !ok {
+// 					return
+// 				}
+// 				fmt.Println(head.Hash().Hex())
+// 			case err := <-sub.Err():
+// 				t.Error(err)
+// 				return
+// 			}
+// 		}
+// 	}()
 
-	go func() {
-		for {
-			select {
-			case <-mngr.Ctx.Done():
-				return
-			default:
-				time.Sleep(time.Second)
-				back.Commit()
-			}
-		}
-	}()
-	<-mngr.Done()
-}
+// 	go func() {
+// 		for {
+// 			select {
+// 			case <-mngr.Ctx.Done():
+// 				return
+// 			default:
+// 				time.Sleep(time.Second)
+// 				back.Commit()
+// 			}
+// 		}
+// 	}()
+// 	<-mngr.Done()
+// }

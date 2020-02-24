@@ -28,6 +28,7 @@ func (b *Book) Write(filename string) error {
 	if err != nil {
 		return errors.Wrapf(err, "could not write book as %s", filename)
 	}
+	return nil
 }
 
 // func (b *Book) MarshalJSON() ([]byte, error) {
