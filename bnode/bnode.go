@@ -24,7 +24,7 @@ import (
 // Node is a container on which services can be registered.
 type Node struct {
 	eventmux *event.TypeMux // Event multiplexer used between the services of a stack
-	config   *node.Config
+	config   *Config
 	accman   *accounts.Manager
 
 	ephemeralKeystore string            // if non-empty, the key directory that will be removed by Stop
@@ -59,7 +59,7 @@ type Node struct {
 }
 
 // New creates a new P2P node, ready for protocol registration.
-func New(conf *node.Config) (*Node, error) {
+func New(conf *Config) (*Node, error) {
 	// Copy config and resolve the datadir so future changes to the current
 	// working directory don't affect the node.
 	confCopy := *conf
@@ -97,7 +97,7 @@ func New(conf *node.Config) (*Node, error) {
 		accman:            am,
 		ephemeralKeystore: ephemeralKeystore,
 		config:            conf,
-		serviceFuncs:      []ServiceConstructor{},
+		serviceFuncs:      []node.ServiceConstructor{},
 		ipcEndpoint:       conf.IPCEndpoint(),
 		httpEndpoint:      conf.HTTPEndpoint(),
 		wsEndpoint:        conf.WSEndpoint(),
@@ -106,14 +106,13 @@ func New(conf *node.Config) (*Node, error) {
 	}, nil
 }
 
-
 // Close stops the Node and releases resources acquired in
 // Node constructor New.
 func (n *Node) Close() error {
 	var errs []error
 
 	// Terminate all subsystems and collect any errors
-	if err := n.Stop(); err != nil && err != ErrNodeStopped {
+	if err := n.Stop(); err != nil && err != node.ErrNodeStopped {
 		errs = append(errs, err)
 	}
 	if err := n.accman.Close(); err != nil {
@@ -132,12 +131,12 @@ func (n *Node) Close() error {
 
 // Register injects a new service into the node's stack. The service created by
 // the passed constructor must be unique in its type with regard to sibling ones.
-func (n *Node) Register(constructor ServiceConstructor) error {
+func (n *Node) Register(constructor node.ServiceConstructor) error {
 	n.lock.Lock()
 	defer n.lock.Unlock()
 
 	if n.server != nil {
-		return ErrNodeRunning
+		return node.ErrNodeRunning
 	}
 	n.serviceFuncs = append(n.serviceFuncs, constructor)
 	return nil
@@ -150,7 +149,7 @@ func (n *Node) Start() error {
 
 	// Short circuit if the node's already running
 	if n.server != nil {
-		return ErrNodeRunning
+		return node.ErrNodeRunning
 	}
 	if err := n.openDataDir(); err != nil {
 		return err
@@ -180,7 +179,7 @@ func (n *Node) Start() error {
 	services := make(map[reflect.Type]Service)
 	for _, constructor := range n.serviceFuncs {
 		// Create a new context for the particular service
-		ctx := &ServiceContext{
+		ctx := &node.ServiceContext{
 			config:         n.config,
 			services:       make(map[reflect.Type]Service),
 			EventMux:       n.eventmux,
@@ -196,7 +195,7 @@ func (n *Node) Start() error {
 		}
 		kind := reflect.TypeOf(service)
 		if _, exists := services[kind]; exists {
-			return &DuplicateServiceError{Kind: kind}
+			return &node.DuplicateServiceError{Kind: kind}
 		}
 		services[kind] = service
 	}
@@ -272,7 +271,7 @@ func (n *Node) openDataDir() error {
 // startRPC is a helper method to start all the various RPC endpoint during node
 // startup. It's not meant to be called at any time afterwards as it makes certain
 // assumptions about the state of the node.
-// 
+//
 // fairly certain that I don't need any services. fairly certins
 func (n *Node) startRPC(services map[reflect.Type]Service) error {
 	// Gather all the possible APIs to surface
