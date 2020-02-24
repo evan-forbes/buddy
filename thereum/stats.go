@@ -8,30 +8,32 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 )
 
-type Statistics struct {
+// StatsAPI is one of the *Thereum wrappers in BackendAPI. Specifically to provide the
+// statistics portion of the api
+type StatsAPI struct {
 	back *Thereum
 }
 
-func (s *Statistics) ProtocolVersion() int {
+func (s *StatsAPI) ProtocolVersion() int {
 	return 1
 }
 
-func (s *Statistics) SuggestPrice(ctx context.Context) (*big.Int, error) {
-	return
+func (s *StatsAPI) SuggestPrice(ctx context.Context) (*big.Int, error) {
+	return s.back.config.GasPrice, nil
 }
 
-func (s *Statistics) ExtRPCEnabled() bool {
-
+func (s *StatsAPI) ExtRPCEnabled() bool {
+	return true
 }
 
-func (s *Statistics) RPCGasCap() *big.Int {
-
+func (s *StatsAPI) RPCGasCap() *big.Int {
+	return s.back.config.GasCap
 }
 
-func (s *Statistics) ChainConfig() *params.ChainConfig {
-
+func (s *StatsAPI) ChainConfig() *params.ChainConfig {
+	return s.back.chainConfig
 }
 
-func (s *Statistics) CurrentBlock() *types.Block {
-
+func (s *StatsAPI) CurrentBlock() *types.Block {
+	return s.back.blockchain.CurrentBlock()
 }

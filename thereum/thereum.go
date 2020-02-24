@@ -8,6 +8,8 @@ import (
 	"github.com/ethereum/go-ethereum/consensus/clique"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/rawdb"
+	"github.com/ethereum/go-ethereum/core/vm"
+	"github.com/ethereum/go-ethereum/params"
 	"github.com/pkg/errors"
 
 	"github.com/ethereum/go-ethereum/consensus"
@@ -18,10 +20,12 @@ import (
 // Thereum holds all datastructures needed for blockchain functionality.
 // Various wrappers are used to implement further functionality.
 type Thereum struct {
-	config   *Config
-	engine   consensus.Engine
-	db       ethdb.Database
-	eventMux *event.TypeMux
+	config      *Config
+	engine      consensus.Engine
+	db          ethdb.Database
+	blockchain  *core.BlockChain
+	chainConfig *params.ChainConfig
+	eventMux    *event.TypeMux
 
 	wg   *sync.WaitGroup
 	ctx  context.Context
@@ -35,27 +39,46 @@ func New(ctx context.Context, wg *sync.WaitGroup, config *Config) (*Thereum, err
 		config.GasPrice = new(big.Int).Set(DefaultConfig.GasPrice)
 	}
 	// open/start a database
-	chainDb, err := openDatabase("chaindata", config.DatabaseCache, config.DatabaseHandles, config.Path)
+	chainDb, err := openDatabase(
+		"chaindata",
+		config.DatabaseCache,
+		config.DatabaseHandles,
+		config.Path,
+	)
 	if err != nil {
 		return nil, err
 	}
 	// setup a genesis block based on the config
-	_, _, err = core.SetupGenesisBlock(chainDb, config.Genesis)
+	chainConfig, _, err := core.SetupGenesisBlock(chainDb, config.Genesis)
 	if err != nil {
 		return nil, errors.Wrap(err, "Could not setup genesis block during Thereum initialization")
 	}
 	// create PoA consensus engine
-	engine := clique.New(config.CliqueConfig, chainDb)
+	engine := clique.New(params.AllCliqueProtocolChanges.Clique, chainDb)
 
 	// construct the Thereum object
 	ther := &Thereum{
-		config:   config,
-		engine:   engine,
-		db:       chainDb,
-		eventMux: &event.TypeMux{},
-		ctx:      ctx,
-		wg:       wg,
+		config:      config,
+		engine:      engine,
+		db:          chainDb,
+		chainConfig: chainConfig,
+		eventMux:    &event.TypeMux{},
+		ctx:         ctx,
+		wg:          wg,
 	}
+
+	ther.blockchain, err = core.NewBlockChain(
+		chainDb,
+		config.CacheConfig,
+		chainConfig,
+		engine,
+		vm.Config{},
+		nil,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	return ther, nil
 }
 
@@ -64,13 +87,4 @@ func openDatabase(name string, cache int, handles int, path string) (ethdb.Datab
 		return rawdb.NewMemoryDatabase(), nil
 	}
 	return rawdb.NewLevelDBDatabase(name, cache, handles, path)
-}
-
-type Backend struct {
-}
-
-func NewBackend() *Backend {
-	// make thereum object
-	// wrap with backend
-	// create a gas price oracle and add it
 }

@@ -5,14 +5,18 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/core"
+	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/params"
 )
 
 type Config struct {
 	Prune           bool                 `json:"prune"`
 	GasPrice        *big.Int             `json:"gas_price"`
+	GasCap          *big.Int             `json:"gas_cap"`
 	TxPoolConfig    core.TxPoolConfig    `json:"tx_pool_config"`
 	CliqueConfig    *params.CliqueConfig `json:"clique_config"`
+	CacheConfig     *core.CacheConfig    `json:"cache_config"`
+	VMConfig        *vm.Config           `json:"vm_config"`
 	TrieCleanCache  int                  `json:"trie_clean_cache"`
 	TrieDirtyCache  int                  `json:"trie_dirty_cache"`
 	TrieTimeout     time.Duration        `json:"trie_timeout"`
@@ -24,34 +28,20 @@ type Config struct {
 }
 
 var DefaultConfig = Config{
-	Prune:          false,
-	GasPrice:       big.NewInt(params.GWei),
-	TxPoolConfig:   DefaultTxPoolConfig,
-	CliqueConfig:   DefaultCliqueConfig,
-	DatabaseCache:  512,
-	TrieCleanCache: 256,
-	TrieDirtyCache: 256,
-	TrieTimeout:    60 * time.Minute,
-	Path:           "./chaindata",
+	Prune:        false,
+	GasPrice:     big.NewInt(params.GWei),
+	GasCap:       big.NewInt(1000000000000),
+	TxPoolConfig: DefaultTxPoolConfig,
+	CliqueConfig: DefaultCliqueConfig,
+	CacheConfig:  DefaultCacheConfig,
+	Genesis:      DefaultGenesis,
+
+	// DatabaseCache:  512,
+	// TrieCleanCache: 256,
+	// TrieDirtyCache: 256,
+	// TrieTimeout:    60 * time.Minute,
+	Path: "./chaindata",
 }
-
-// // TxPoolConfig are the configuration parameters of the transaction pool.
-// type TxPoolConfig struct {
-// 	Locals    []common.Address // Addresses that should be treated by default as local
-// 	NoLocals  bool             // Whether local transaction handling should be disabled
-// 	Journal   string           // Journal of local transactions to survive node restarts
-// 	Rejournal time.Duration    // Time interval to regenerate the local transaction journal
-
-// 	PriceLimit uint64 // Minimum gas price to enforce for acceptance into the pool
-// 	PriceBump  uint64 // Minimum price bump percentage to replace an already existing transaction (nonce)
-
-// 	AccountSlots uint64 // Number of executable transaction slots guaranteed per account
-// 	GlobalSlots  uint64 // Maximum number of executable transaction slots for all accounts
-// 	AccountQueue uint64 // Maximum number of non-executable transaction slots permitted per account
-// 	GlobalQueue  uint64 // Maximum number of non-executable transaction slots for all accounts
-
-// 	Lifetime time.Duration // Maximum amount of time non-executable transaction are queued
-// }
 
 // DefaultTxPoolConfig contains the default configurations for the transaction
 // pool.
@@ -82,4 +72,17 @@ var DefaultCliqueConfig = &params.CliqueConfig{
 	Epoch:  2000,
 }
 
-var DefaultGenesis = &core.Genesis{}
+var DefaultGenesis = &core.Genesis{
+	Config:     params.AllCliqueProtocolChanges,
+	GasLimit:   1000000000000,
+	Timestamp:  uint64(time.Now().Unix()),
+	Difficulty: big.NewInt(0),
+}
+
+var DefaultCacheConfig = &core.CacheConfig{
+	TrieCleanLimit:      256,
+	TrieCleanNoPrefetch: false,
+	TrieDirtyLimit:      256,
+	TrieDirtyDisabled:   true,
+	TrieTimeLimit:       time.Hour,
+}
