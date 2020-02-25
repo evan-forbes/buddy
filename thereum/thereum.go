@@ -24,6 +24,7 @@ type Thereum struct {
 	engine      consensus.Engine
 	db          ethdb.Database
 	blockchain  *core.BlockChain
+	txPool      *core.TxPool
 	chainConfig *params.ChainConfig
 	eventMux    *event.TypeMux
 
@@ -79,7 +80,13 @@ func New(ctx context.Context, wg *sync.WaitGroup, config *Config) (*Thereum, err
 		return nil, err
 	}
 
+	ther.txPool = core.NewTxPool(config.TxPoolConfig, chainConfig, ther.blockchain)
+
 	return ther, nil
+}
+
+func (t *Thereum) BlockChain() *core.BlockChain {
+	return t.blockchain
 }
 
 func openDatabase(name string, cache int, handles int, path string) (ethdb.Database, error) {
@@ -87,4 +94,24 @@ func openDatabase(name string, cache int, handles int, path string) (ethdb.Datab
 		return rawdb.NewMemoryDatabase(), nil
 	}
 	return rawdb.NewLevelDBDatabase(name, cache, handles, path)
+}
+
+// BackendAPI fullfills the backend.Backend (and ethapi.Backend) interface for plugging into the
+// rpc backend managed by node.Node.
+type BackendAPI struct {
+	back *Thereum
+	FilterAPI
+	StatsAPI
+	TxPoolAPI
+	BlockchainAPI
+}
+
+func NewBackendAPI(t *Thereum) *BackendAPI {
+	return &BackendAPI{
+		back:          t,
+		FilterAPI:     FilterAPI{back: t},
+		StatsAPI:      StatsAPI{back: t},
+		TxPoolAPI:     TxPoolAPI{back: t},
+		BlockchainAPI: BlockchainAPI{back: t},
+	}
 }
