@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package bnode
+package node
 
 import (
 	"crypto/ecdsa"
@@ -34,7 +34,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/node"
 	"github.com/ethereum/go-ethereum/p2p"
 	"github.com/ethereum/go-ethereum/p2p/enode"
 	"github.com/ethereum/go-ethereum/rpc"
@@ -235,7 +234,7 @@ func DefaultIPCEndpoint(clientIdentifier string) string {
 			panic("empty executable name")
 		}
 	}
-	config := &Config{DataDir: node.DefaultDataDir(), IPCPath: clientIdentifier + ".ipc"}
+	config := &Config{DataDir: DefaultDataDir(), IPCPath: clientIdentifier + ".ipc"}
 	return config.IPCEndpoint()
 }
 
@@ -259,7 +258,7 @@ func (c *Config) GraphQLEndpoint() string {
 
 // DefaultHTTPEndpoint returns the HTTP endpoint used by default.
 func DefaultHTTPEndpoint() string {
-	config := &Config{HTTPHost: node.DefaultHTTPHost, HTTPPort: node.DefaultHTTPPort}
+	config := &Config{HTTPHost: DefaultHTTPHost, HTTPPort: DefaultHTTPPort}
 	return config.HTTPEndpoint()
 }
 
@@ -274,7 +273,7 @@ func (c *Config) WSEndpoint() string {
 
 // DefaultWSEndpoint returns the websocket endpoint used by default.
 func DefaultWSEndpoint() string {
-	config := &Config{WSHost: node.DefaultWSHost, WSPort: node.DefaultWSPort}
+	config := &Config{WSHost: DefaultWSHost, WSPort: DefaultWSPort}
 	return config.WSEndpoint()
 }
 
