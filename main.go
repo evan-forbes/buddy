@@ -12,7 +12,6 @@ import (
 // TODOs:
 /*
  - 1) finish fullfilling the Backend interface for thereum.Thereum
- - 2) fork the rest of the node package to eliminate confusion/whatever
 
  ### Longerterm
  - cut more out of node/other forked packages to cut out bloat

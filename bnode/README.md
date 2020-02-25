@@ -1,1 +1,0 @@
-bnode is a partial fork of go-ethereum's node package. The goal being to make small changes that cut out uneccary processes while still being able to plug back into the rest of the go-ethereum's node.
