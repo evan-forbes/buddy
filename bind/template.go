@@ -116,11 +116,11 @@ func Deploy{{.Type}}(auth *bind.TransactOpts, backend bind.ContractBackend {{ran
 //		Structs
 ////////////////////////////////////////////////////
 {{range $structs}}
-	// {{.Name}} is an auto generated low-level Go binding around an user-defined struct.
-	type {{.Name}} struct {
+// {{.Name}} is an auto generated low-level Go binding around an user-defined struct.
+type {{.Name}} struct {
 	{{range $field := .Fields}}
 	{{$field.Name}} {{$field.Type}}{{end}}
-	}
+}
 {{end}}
 
 //////////////////////////////////////////////////////
@@ -165,19 +165,20 @@ func (_{{$contract.Type}} *{{$contract.Type}}) {{.Normalized.Name}}(opts *bind.T
 
 {{range .Events}}
 //////// {{.Normalized.Name}} ////////
-// {{$contract.Type}}{{.Normalized.Name}}ID is the hex of the Topic Hash
+
+// {{.Normalized.Name}}ID is the hex of the Topic Hash
 const {{$contract.Type}}{{.Normalized.Name}}ID = "{{.Topic}}"
 
-// {{$contract.Type}}{{.Normalized.Name}}Log represents a {{.Normalized.Name}} event raised by the {{$contract.Type}} contract.
-type {{$contract.Type}}{{.Normalized.Name}}Log struct { {{range .Normalized.Inputs}}
+// {{.Normalized.Name}}Log represents a {{.Normalized.Name}} event raised by the {{$contract.Type}} contract.
+type {{.Normalized.Name}}Log struct { {{range .Normalized.Inputs}}
 	{{capitalise .Name}} {{if .Indexed}}{{bindtopictype .Type $structs}}{{else}}{{bindtype .Type $structs}}{{end}}; {{end}}
 	Raw types.Log // Blockchain specific contextual infos
 }
 
 // Unpack{{.Normalized.Name}}Log is a log parse operation binding the contract event {{.Topic}}
 // Solidity: {{formatevent .Original $structs}}
-func (_{{$contract.Type}} *{{$contract.Type}}) Unpack{{.Normalized.Name}}Log(log types.Log) (*{{$contract.Type}}{{.Normalized.Name}}Log, error) {
-	event := new({{$contract.Type}}{{.Normalized.Name}}Log)
+func (_{{$contract.Type}} *{{$contract.Type}}) Unpack{{.Normalized.Name}}Log(log types.Log) (*{{.Normalized.Name}}Log, error) {
+	event := new({{.Normalized.Name}}Log)
 	if err := _{{$contract.Type}}.UnpackLog(event, "{{.Original.Name}}", log); err != nil {
 		return nil, err
 	}
@@ -186,19 +187,27 @@ func (_{{$contract.Type}} *{{$contract.Type}}) Unpack{{.Normalized.Name}}Log(log
 
 {{end}}
 
-// MuxTemp can be copied and pasted to save ya a quick minute when distinguishing between log data
-// func MuxTemp(log types.Log) {
-// 	switch log.Topics[0].Hex() { {{range .Events}}
-// 	case {{$pkg}}.{{$contract.Type}}{{.Normalized.Name}}ID:
-// 	{{end}}
-// 	}
-// }
+/*
+Mux can be copied and pasted to save ya a quick minute when distinguishing between log data
+func Mux(c *{{$contract.Type}}, log types.Log) error {
+	switch log.Topics[0].Hex() { {{range .Events}}
+	case {{$pkg}}.{{$contract.Type}}{{.Normalized.Name}}ID:
+		ulog, err := c.Unpack{{.Normalized.Name}}Log(log)
+		if err != nil {
+			return err
+		}
+		// insert additional code here
+	{{end}}
+	}
+}
+*/
 
 //////////////////////////////////////////////////////
 //		Bin and ABI
 ////////////////////////////////////////////////////
+
 // {{.Type}}Bin is used to deploy the generated contract
-var {{.Type}}Bin = "0x{{.InputBin}}"
+const {{.Type}}Bin = "0x{{.InputBin}}"
 
 // {{.Type}}ABI is used to communicate with the compiled solidity code of the generated contract
 const {{.Type}}ABI = "{{.InputABI}}"
