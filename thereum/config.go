@@ -6,6 +6,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/vm"
+	"github.com/ethereum/go-ethereum/miner"
 	"github.com/ethereum/go-ethereum/params"
 )
 
@@ -16,6 +17,7 @@ type Config struct {
 	TxPoolConfig    core.TxPoolConfig    `json:"tx_pool_config"`
 	CliqueConfig    *params.CliqueConfig `json:"clique_config"`
 	CacheConfig     *core.CacheConfig    `json:"cache_config"`
+	MinerConfig     *miner.Config        `json:"miner_config"`
 	VMConfig        *vm.Config           `json:"vm_config"`
 	TrieCleanCache  int                  `json:"trie_clean_cache"`
 	TrieDirtyCache  int                  `json:"trie_dirty_cache"`
@@ -35,6 +37,7 @@ var DefaultConfig = Config{
 	CliqueConfig: DefaultCliqueConfig,
 	CacheConfig:  DefaultCacheConfig,
 	Genesis:      DefaultGenesis,
+	MinerConfig:  DefaultMinerConfig,
 
 	// DatabaseCache:  512,
 	// TrieCleanCache: 256,
@@ -77,6 +80,7 @@ var DefaultGenesis = &core.Genesis{
 	GasLimit:   1000000000000,
 	Timestamp:  uint64(time.Now().Unix()),
 	Difficulty: big.NewInt(0),
+	Alloc:      core.GenesisAlloc{},
 }
 
 var DefaultCacheConfig = &core.CacheConfig{

@@ -2,7 +2,6 @@ package thereum
 
 import (
 	"context"
-	"fmt"
 	"log"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -41,11 +40,6 @@ func (f *FilterAPI) SubscribeLogsEvent(ch chan<- []*types.Log) event.Subscriptio
 	return f.back.BlockChain().SubscribeLogsEvent(ch)
 }
 
-func (f *FilterAPI) SubscribePendingLogsEvent(ch chan<- []*types.Log) event.Subscription {
-	fmt.Println("pending logs are not yet supported")
-	return nil
-}
-
 func (f *FilterAPI) SubscribeRemovedLogsEvent(ch chan<- core.RemovedLogsEvent) event.Subscription {
 	return f.back.BlockChain().SubscribeRemovedLogsEvent(ch)
 }
@@ -59,9 +53,22 @@ func (m *MiningAPI) StartMining(threads int) error {
 }
 
 func (m *MiningAPI) StopMining() {
-	return
+	// Update the thread count within the consensus engine
+	type threaded interface {
+		SetThreads(threads int)
+	}
+	if th, ok := m.back.engine.(threaded); ok {
+		th.SetThreads(-1)
+	}
+	// Stop the block creating itself
+	m.back.miner.Stop()
+}
+
+func (m *MiningAPI) SubscribePendingLogsEvent(ch chan<- []*types.Log) event.Subscription {
+	return m.back.miner.SubscribePendingLogs(ch)
+
 }
 
 func (m *MiningAPI) IsMining() bool {
-	return true
+	return m.back.miner.Mining()
 }
