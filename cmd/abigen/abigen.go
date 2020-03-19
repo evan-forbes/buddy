@@ -7,8 +7,10 @@ import (
 
 	"github.com/evan-forbes/buddy/bind"
 	"github.com/pkg/errors"
-	cli "gopkg.in/urfave/cli.v1"
+	cli "github.com/urfave/cli/v2"
 )
+
+// TODO: recursively generate over a directory
 
 // Cast runs the abigen command
 func Cast(ctx *cli.Context) error {

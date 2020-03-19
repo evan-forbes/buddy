@@ -76,12 +76,38 @@ const tmplSourceGo = `
 {{$pkg := .Package}}
 package {{$pkg}}
 
+import (
+	"math/big"
+	"strings"
+
+	ethereum "github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/event"
+)
+
+// Reference imports to suppress errors if they are not otherwise used.
+var (
+	_ = big.NewInt
+	_ = strings.NewReader
+	_ = ethereum.NotFound
+	_ = abi.U256
+	_ = bind.Bind
+	_ = common.Big1
+	_ = types.BloomLookup
+	_ = event.NewSubscription
+)
+
 {{$structs := .Structs}}
 {{range $contract := .Contracts}}
 
 // {{.Type}} is a wrapper around BoundContract, enforcing type checking and including
 // QoL helper methods
-type {{.Type}} bind.BoundContract
+type {{.Type}} struct {
+	bind.BoundContract
+}
 
 // New{{.Type}} creates a new instance of {{.Type}}, bound to a specific deployed contract.
 func New{{.Type}}(address common.Address, backend bind.ContractBackend) (*{{.Type}}, error) {
@@ -90,7 +116,7 @@ func New{{.Type}}(address common.Address, backend bind.ContractBackend) (*{{.Typ
 		return nil, err
 	}
 	contract := bind.NewBoundContract(address, a, backend, backend, backend)
-	return &{{.Type}}(*contract), nil
+	return &{{.Type}}{*contract}, nil
 }
 
 {{if .InputBin}}
@@ -108,7 +134,7 @@ func Deploy{{.Type}}(auth *bind.TransactOpts, backend bind.ContractBackend {{ran
   if err != nil {
 	return common.Address{}, nil, nil, err
   }
-  return address, tx, &{{.Type}}(*contract), nil
+  return address, tx, &{{.Type}}{*contract}, nil
 }
 {{end}}
 
@@ -167,7 +193,7 @@ func (_{{$contract.Type}} *{{$contract.Type}}) {{.Normalized.Name}}(opts *bind.T
 //////// {{.Normalized.Name}} ////////
 
 // {{.Normalized.Name}}ID is the hex of the Topic Hash
-const {{$contract.Type}}{{.Normalized.Name}}ID = "{{.Topic}}"
+const {{.Normalized.Name}}ID = "{{.Topic}}"
 
 // {{.Normalized.Name}}Log represents a {{.Normalized.Name}} event raised by the {{$contract.Type}} contract.
 type {{.Normalized.Name}}Log struct { {{range .Normalized.Inputs}}

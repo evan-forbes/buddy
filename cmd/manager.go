@@ -146,16 +146,16 @@ func LoadConfig() (Config, error) {
 	return out, nil
 }
 
-// LoadHexAddressMap reads and parses the configuration file
-func LoadHexAddressMap() (map[string]string, error) {
-	out := make(map[string]string)
-	jsonFile, err := ioutil.ReadFile("/home/evan/.creds/HexAddressMap.json")
-	if err != nil {
-		return out, err
-	}
-	err = json.Unmarshal(jsonFile, &out)
-	if err != nil {
-		return out, err
-	}
-	return out, nil
-}
+// // LoadHexAddressMap reads and parses the configuration file
+// func LoadHexAddressMap() (map[string]string, error) {
+// 	out := make(map[string]string)
+// 	jsonFile, err := ioutil.ReadFile("/home/evan/.creds/HexAddressMap.json")
+// 	if err != nil {
+// 		return out, err
+// 	}
+// 	err = json.Unmarshal(jsonFile, &out)
+// 	if err != nil {
+// 		return out, err
+// 	}
+// 	return out, nil
+// }

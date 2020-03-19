@@ -4,9 +4,10 @@ import (
 	"log"
 	"os"
 
-	cli "gopkg.in/urfave/cli.v1"
+	cli "github.com/urfave/cli/v2"
 
 	"github.com/evan-forbes/buddy/cmd/abigen"
+	"github.com/evan-forbes/buddy/cmd/boot"
 )
 
 // TODOs:
@@ -24,31 +25,31 @@ func main() {
 
 	// abiFlags are flags for the subcommand abigen
 	abiFlags := []cli.Flag{
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "abi, a",
 			Value: ".",
 			Usage: "path to abi (.json or .abi)",
 			// Destination: &abiPath,
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "bin, b",
 			Value: ".",
 			Usage: "path to contract binary (usually a .bin)",
 			// Destination: &binPath,
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "type, t",
 			Value: "",
 			Usage: "specify the main type",
 			// Destination: &tp,
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "pkg, p",
 			Value: "",
 			Usage: "specify the package name",
 			// Destination: &tp,
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "out, o",
 			Value: "",
 			Usage: "specify the output file name (default = type_gen.go",
@@ -56,13 +57,21 @@ func main() {
 		},
 	}
 
+	bootFlags := []cli.Flag{}
+
 	// subcommands
-	app.Commands = []cli.Command{
+	app.Commands = []*cli.Command{
 		{
 			Name:   "abigen",
 			Usage:  "generate interface and mock friendly go bindings",
 			Action: abigen.Cast,
 			Flags:  abiFlags,
+		},
+		{
+			Name:   "boot",
+			Usage:  "generate interface and mock friendly go bindings",
+			Action: boot.Boot,
+			Flags:  bootFlags,
 		},
 	}
 
@@ -71,17 +80,3 @@ func main() {
 		log.Fatal(err)
 	}
 }
-
-/* TODO:
-
-finish event and unpackers
-save to file
-finish cli tool
-
-	ctx := wand.NewDefaultContext(context.Background())
-	spells := map[string]wand.Spell{
-		"abigen": &abigen.Spell{},
-		"solc":   &solc.Spell{},
-	}
-	wand.Run(ctx, spells, os.Args[1:])
-*/

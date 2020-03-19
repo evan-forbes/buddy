@@ -90,3 +90,5 @@ var DefaultCacheConfig = &core.CacheConfig{
 	TrieDirtyDisabled:   true,
 	TrieTimeLimit:       time.Hour,
 }
+
+var DefaultMinerConfig = &miner.Config{}
