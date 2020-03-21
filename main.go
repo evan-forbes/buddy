@@ -16,6 +16,7 @@ import (
 
  ### Longerterm
  - cut more out of node/other forked packages to cut out bloat
+   specifically: the node.Start
 */
 
 func main() {

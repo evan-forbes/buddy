@@ -7,6 +7,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/consensus/clique"
 	"github.com/ethereum/go-ethereum/core"
+	"github.com/ethereum/go-ethereum/core/bloombits"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
@@ -28,15 +29,16 @@ import (
 // Thereum holds all datastructures needed for blockchain functionality.
 // Various wrappers are used to implement further functionality.
 type Thereum struct {
-	config      *Config
-	engine      consensus.Engine
-	db          ethdb.Database
-	blockchain  *core.BlockChain
-	txPool      *core.TxPool
-	chainConfig *params.ChainConfig
-	eventMux    *event.TypeMux
-	miner       *miner.Miner
-	bloom       *core.ChainIndexer
+	config        *Config
+	engine        consensus.Engine
+	db            ethdb.Database
+	blockchain    *core.BlockChain
+	txPool        *core.TxPool
+	chainConfig   *params.ChainConfig
+	eventMux      *event.TypeMux
+	miner         *miner.Miner
+	bloom         *core.ChainIndexer
+	bloomRequests chan chan *bloombits.Retrieval
 
 	wg   *sync.WaitGroup
 	ctx  context.Context
@@ -69,14 +71,15 @@ func New(ctx context.Context, wg *sync.WaitGroup, config *Config) (*Thereum, err
 
 	// construct the Thereum object
 	ther := &Thereum{
-		config:      config,
-		engine:      engine,
-		db:          chainDb,
-		chainConfig: chainConfig,
-		eventMux:    &event.TypeMux{},
-		ctx:         ctx,
-		wg:          wg,
-		bloom:       eth.NewBloomIndexer(chainDb, params.BloomBitsBlocks, params.BloomConfirms),
+		config:        config,
+		engine:        engine,
+		db:            chainDb,
+		chainConfig:   chainConfig,
+		eventMux:      &event.TypeMux{},
+		ctx:           ctx,
+		wg:            wg,
+		bloom:         eth.NewBloomIndexer(chainDb, params.BloomBitsBlocks, params.BloomConfirms),
+		bloomRequests: make(chan chan *bloombits.Retrieval),
 	}
 
 	ther.blockchain, err = core.NewBlockChain(
@@ -154,7 +157,7 @@ func NewBackendAPI(t *Thereum) *BackendAPI {
 
 // create methods to follow the node.Service interface
 
-func (t *Thereum) Protocols() []p2p.Protocol { return nil }
+func (t *Thereum) Protocols() []p2p.Protocol { return []p2p.Protocol{} }
 
 func (t *Thereum) APIs() (out []rpc.API) {
 	// add the api functionality to the base thereum obj
@@ -178,10 +181,18 @@ func (t *Thereum) APIs() (out []rpc.API) {
 }
 
 func (t *Thereum) Start(serv *p2p.Server) error {
+	t.startBloomHandlers(params.BloomBitsBlocks)
 	return nil
 }
 
 func (t *Thereum) Stop() error {
+	t.bloom.Close()
+	t.blockchain.Stop()
+	t.engine.Close()
+	t.txPool.Stop()
+	t.miner.Stop()
+	t.eventMux.Stop()
+	t.db.Close()
 	return nil
 }
 
@@ -253,7 +264,7 @@ func (t *Thereum) Stop() error {
 // 		return false, errors.New("last cannot be specified without first")
 // 	}
 // 	if first != nil && last == nil {
-// 		head := api.eth.BlockChain().CurrentHeader().Number.Uint64()
+// 		head := api.t.BlockChain().CurrentHeader().Number.Uint64()
 // 		last = &head
 // 	}
 // 	if _, err := os.Stat(file); err == nil {
