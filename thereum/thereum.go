@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/consensus/clique"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/bloombits"
@@ -39,6 +40,7 @@ type Thereum struct {
 	miner         *miner.Miner
 	bloom         *core.ChainIndexer
 	bloomRequests chan chan *bloombits.Retrieval
+	accountMngr   *accounts.Manager
 
 	wg   *sync.WaitGroup
 	ctx  context.Context
@@ -80,6 +82,7 @@ func New(ctx context.Context, wg *sync.WaitGroup, config *Config) (*Thereum, err
 		wg:            wg,
 		bloom:         eth.NewBloomIndexer(chainDb, params.BloomBitsBlocks, params.BloomConfirms),
 		bloomRequests: make(chan chan *bloombits.Retrieval),
+		accountMngr:   accounts.NewManager(&accounts.Config{}),
 	}
 
 	ther.blockchain, err = core.NewBlockChain(
@@ -181,6 +184,7 @@ func (t *Thereum) APIs() (out []rpc.API) {
 }
 
 func (t *Thereum) Start(serv *p2p.Server) error {
+	t.wg.Add(1)
 	t.startBloomHandlers(params.BloomBitsBlocks)
 	return nil
 }
@@ -193,6 +197,7 @@ func (t *Thereum) Stop() error {
 	t.miner.Stop()
 	t.eventMux.Stop()
 	t.db.Close()
+	t.wg.Done()
 	return nil
 }
 

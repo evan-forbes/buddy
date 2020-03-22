@@ -13,7 +13,7 @@ import (
 // TODOs:
 /*
  - 1) finish fullfilling the Backend interface for thereum.Thereum
-
+ - 2) fix genesis block bug
  ### Longerterm
  - cut more out of node/other forked packages to cut out bloat
    specifically: the node.Start

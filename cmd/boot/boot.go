@@ -33,6 +33,13 @@ func Boot(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
+
+	err = stack.Start()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	wg.Wait()
 	return nil
 }
 

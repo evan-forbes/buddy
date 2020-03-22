@@ -28,8 +28,7 @@ func (b *BlockchainAPI) ChainDb() ethdb.Database {
 }
 
 func (b *BlockchainAPI) AccountManager() *accounts.Manager {
-	log.Println("Account manager not supported")
-	return nil
+	return b.back.accountMngr
 }
 
 func (b *BlockchainAPI) Downloader() *downloader.Downloader {
